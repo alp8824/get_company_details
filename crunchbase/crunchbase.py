@@ -1,34 +1,16 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*- 
-"""crunchbase.py
-"""
+
 import requests
 import urllib
 import ujson as json
 
-def rm_quotes(txt):
-    """
-    removes single or double quotes from around a string.
-    """
-    if txt is None or txt == "":
-        return ""
-    txt = txt.encode('utf-8')
-    txt = ' '.join(txt.split()) # gets rid of newlines & tabs
-    txt = txt.replace('“', '"')
-    txt = txt.replace('”', '"')
-    if txt.startswith('"') and txt.endswith('"'):
-        txt = txt.strip('"')
-    elif txt.startswith("'") and txt.endswith("'"):
-        txt = txt.strip("'")
-    return txt.replace('"', "'") # use single quotes for internal quoting
-
 class Crunchbase(object):
     BASE_URI = "http://api.crunchbase.com"
-    ENTITY_TYPES = ['company', 'companies', 
-                    'product', 'products', 
+    ENTITY_TYPES = ('company', 'companies',
+                    'product', 'products',
                     'person', 'people',
-                    'financial-organization', 'financial-organizations', 
-                    'service-provider', 'service-providers']
+                    'financial-organization', 'financial-organizations',
+                    'service-provider', 'service-providers')
+
     def __init__(self, apikey=None, version=1):
         self._apikey = apikey
         self.version = version
@@ -100,4 +82,5 @@ class Crunchbase(object):
     
     def all_service_providers(self):
         return self.call_api('service-providers', page=1)
+
 
