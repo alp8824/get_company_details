@@ -4,6 +4,7 @@ import csv
 import ujson as json
 import unicodedata
 import re
+import traceback
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
 
@@ -13,32 +14,20 @@ CB_VERSION = 1
 NA = ' '
 KEY_FILE = 'rootkey.csv'
             
-        
-def handle_error(function):
-    """
-    Exception handling decorator
-    """
-    def workout_problems(*args, **kwargs):
-        import traceback
-        try:
-            return function(*args, **kwargs)
-        except Exception as e:
-            print "\nEXCEPTION encountered: {}\n".format(e)
-            print traceback.format_exc()
-            return None
-    return workout_problems
 
-@handle_error
 def get_keys(KEY_FILE):
     global CB_KEY
     global AWIS_SECRET_KEY
     global AWIS_KEY_ID    
-    with open(KEY_FILE) as f:
-        lines = f.readlines()
-        CB_KEY = lines[0].strip().split('=')[1]
-        AWIS_KEY_ID = lines[1].strip().split('=')[1]
-        AWIS_SECRET_KEY = lines[2].strip().split('=')[1]
-    return (CB_KEY, AWIS_KEY_ID, AWIS_SECRET_KEY)
+    try:
+        with open(KEY_FILE) as f:
+            lines = f.readlines()
+            CB_KEY = lines[0].strip().split('=')[1]
+            AWIS_KEY_ID = lines[1].strip().split('=')[1]
+            AWIS_SECRET_KEY = lines[2].strip().split('=')[1]
+            return (CB_KEY, AWIS_KEY_ID, AWIS_SECRET_KEY)
+    except:
+        return None
 
 def lappend(lst, element):
     if element:
@@ -202,11 +191,10 @@ def get_company_details(cb, company_name):
     return [unicode_to_str(detail) for detail in details_list]
 
 
-@handle_error
 def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
     from pprint import pprint
-    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    api = AwisApi(AWIS_KEY_ID+"xxx", AWIS_SECRET_KEY)
     tree = api.url_info("www.google.com", "Rank", "LinksInCount")
     pprint(tree)
     # pprint(cb.company('Seven-Medical'))
@@ -225,7 +213,14 @@ def main():
     
 if __name__ == '__main__':
     if not get_keys(KEY_FILE):
-        print """ERROR: Failed readin API keys from file {}.
+        print """ERROR: Failed reading API keys from file {}.
 Check the readme and make sure the file exists and 
 has the appropriate format.""".format(KEY_FILE)
-    main()
+    try:
+        main()
+    except IOError as e:
+        if 'response code is 403' in e.message:
+            print traceback.format_exc()
+            print "!!! -> Make sure the AWIS keys are correctly read from key file.\n"
+    
+
