@@ -4,7 +4,7 @@ import csv
 import ujson as json
 import unicodedata
 import re
-from crunchbase import Crunchbase
+from apis import Crunchbase
 
 
 INPUT_CSV = 'input.csv'
@@ -67,7 +67,7 @@ def not_empty(lst):
     return False
 
 def get_raw_details(cb, company_name):
-    print "Looking up {}...".format(company_name)
+    print "Looking up '{}' in CB...".format(company_name)
     details = cb.company(company_name)
     if not check_details(details):
         cn = company_name.replace(' ','')
@@ -101,7 +101,7 @@ def get_company_details(cb, company_name):
     # try and get company details
     details = get_raw_details(cb, company_name)
     if not details:
-        print 'Searching for company {}...'.format(company_name)
+        print 'Searching CB for company {}...'.format(company_name)
         search_details = cb.search(company_name)
         if search_details['total'] == 0:
             return details_list
@@ -137,13 +137,13 @@ def get_company_details(cb, company_name):
                     investors_set.add(investor['financial_org']['name'])
     except:
         pass
+    if raised_amount == 0: raised_amount = NA
+    lappend(details_list, '$'+str(raised_amount))
+    # 'Existing Investors'
     if not investors_set:
         investors = NA
     else:
         investors = ','.join(investors_set)
-    lappend(details_list, '$'+str(raised_amount))
-    # 'Existing Investors'
-    if raised_amount == 0: raised_amount = NA
     lappend(details_list, investors)
     # '# of Employees'
     lappend(details_list, get_info(details, 'number_of_employees'))
