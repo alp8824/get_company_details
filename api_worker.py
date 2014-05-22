@@ -193,12 +193,18 @@ def get_company_details(cb, company_name):
 
 def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
+    # --- TESTING ----------------------
     from pprint import pprint
-    api = AwisApi(AWIS_KEY_ID+"xxx", AWIS_SECRET_KEY)
-    tree = api.url_info("www.google.com", "Rank", "LinksInCount")
+    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    tree = api.url_info("ranking-check.de", "Rank")
     pprint(tree)
+    for elem in tree.iter():
+        print elem.tag, elem.attrib
+    import sys
+    tree.write(sys.stdout)
     # pprint(cb.company('Seven-Medical'))
     exit()
+    # ------------------------------------
     with open(INPUT_CSV) as read_handler:
         with open (OUTPUT_CSV, 'w') as write_handler:
             reader = csv.reader(read_handler)
