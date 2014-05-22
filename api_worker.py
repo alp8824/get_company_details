@@ -4,15 +4,16 @@ import csv
 import ujson as json
 import unicodedata
 import re
-from apis import Crunchbase
-
+from apis.crunchbase import Crunchbase
+from apis.awis import AwisApi
 
 INPUT_CSV = 'input.csv'
 OUTPUT_CSV = 'output.csv'
-API_KEY = 'mq96jn265dfzs7bzzcnkdkdq'
-API_VERSION = 1
+CB_VERSION = 1
 NA = ' '
-
+KEY_FILE = 'rootkey.csv'
+            
+        
 def handle_error(function):
     """
     Exception handling decorator
@@ -26,6 +27,18 @@ def handle_error(function):
             print traceback.format_exc()
             return None
     return workout_problems
+
+@handle_error
+def get_keys(KEY_FILE):
+    global CB_KEY
+    global AWIS_SECRET_KEY
+    global AWIS_KEY_ID    
+    with open(KEY_FILE) as f:
+        lines = f.readlines()
+        CB_KEY = lines[0].strip().split('=')[1]
+        AWIS_KEY_ID = lines[1].strip().split('=')[1]
+        AWIS_SECRET_KEY = lines[2].strip().split('=')[1]
+    return (CB_KEY, AWIS_KEY_ID, AWIS_SECRET_KEY)
 
 def lappend(lst, element):
     if element:
@@ -191,10 +204,13 @@ def get_company_details(cb, company_name):
 
 @handle_error
 def main():
-    cb = Crunchbase(API_KEY, API_VERSION)
-    # from pprint import pprint
+    cb = Crunchbase(CB_KEY, CB_VERSION)
+    from pprint import pprint
+    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    tree = api.url_info("www.google.com", "Rank", "LinksInCount")
+    pprint(tree)
     # pprint(cb.company('Seven-Medical'))
-    # exit()
+    exit()
     with open(INPUT_CSV) as read_handler:
         with open (OUTPUT_CSV, 'w') as write_handler:
             reader = csv.reader(read_handler)
@@ -208,4 +224,8 @@ def main():
                     writer.writerow(new_line)
     
 if __name__ == '__main__':
+    if not get_keys(KEY_FILE):
+        print """ERROR: Failed readin API keys from file {}.
+Check the readme and make sure the file exists and 
+has the appropriate format.""".format(KEY_FILE)
     main()

@@ -1,6 +1,5 @@
 """
 Copyright 2011, Atamert \xd6l\xe7gen (muhuk@muhuk.com)
-
 This file is part of python-awis: https://github.com/muhuk/python-awis.
 """
 
@@ -21,15 +20,15 @@ except ImportError:
 
 class AwisApi(object):
     """
-Wraps Alexa Web Information Service.
+    Wraps Alexa Web Information Service.
+    
+    Usage::
 
-Usage::
-
-api = AwisApi(ACCESS_ID, SECRET_ACCESS_KEY)
-tree = api.url_info("www.domain.com", "Rank", "LinksInCount")
-elem = tree.find("//{%s}StatusCode" % api.NS_PREFIXES["alexa"])
-assert elem.text == "Success"
-"""
+    api = AwisApi(ACCESS_ID, SECRET_ACCESS_KEY)
+    tree = api.url_info("www.domain.com", "Rank", "LinksInCount")
+    elem = tree.find("//{%s}StatusCode" % api.NS_PREFIXES["alexa"])
+    assert elem.text == "Success"
+    """
     AWIS_HOST = "awis.amazonaws.com"
     PATH = "/"
     NS_PREFIXES = {
