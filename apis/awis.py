@@ -34,7 +34,7 @@ class AwisApi(object):
     NS_PREFIXES = {
         "alexa": "http://alexa.amazonaws.com/doc/2005-10-05/",
         "awis": "http://awis.amazonaws.com/doc/2005-07-11",
-    }
+        }
 
     def __init__(self, access_id, secret_access_key):
         self.access_id = access_id

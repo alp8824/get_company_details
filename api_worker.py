@@ -68,7 +68,7 @@ def not_empty(lst):
             return True
     return False
 
-def get_raw_details(cb, company_name):
+def get_cb_raw_details(cb, company_name):
     print "Looking up '{}' in CB...".format(company_name)
     details = cb.company(company_name)
     if not check_details(details):
@@ -87,21 +87,38 @@ def get_raw_details(cb, company_name):
         return None
     return details
 
-def get_company_details(cb, company_name):
+def get_awis_tree(awis, website):
+        if website:
+            print "Getting AWIS data for {}...".format(website)
+            tree = awis.url_info(website, "Rank")
+            status_search = "//{%s}StatusCode" % awis.NS_PREFIXES["alexa"]
+            status = tree.find(status_search)
+            try:
+                if status.text != "Success":
+                    print '''ERROR:AWIS request unsuccessful for website: 
+\t{} 
+\tGot tree: '''.format(Website)
+                    tree.write(sys.stdout)
+                    return None
+                return tree
+            except Exception as e:
+                print traceback.format_exc()
+                print "Failed to read AWIS return status..."
+        else:
+            print "No website specifiec. Website is {}".format(website)
+def get_company_details(cb, awis, company_name):
     """
     Use company name to return a list of company details named in needed_details.
     """
-    import time
-    now = time.time()
-
     details_list = []
     # 'Name'
     company_name = company_name.strip()
+    print "\n{}".format(company_name.upper())
     new_company_name = company_name
     lappend(details_list, company_name)
 
-    # try and get company details
-    details = get_raw_details(cb, company_name)
+    # get company details from CB
+    details = get_cb_raw_details(cb, company_name)
     if not details:
         print 'Searching CB for company {}...'.format(company_name)
         search_details = cb.search(company_name)
@@ -117,13 +134,28 @@ def get_company_details(cb, company_name):
                 except:
                     pass
         if new_company_name != company_name:
-            details = get_raw_details(cb, new_company_name)
+            details = get_cb_raw_details(cb, new_company_name)
     if not details:
         print "\t\tNOT FOUND"
         return details_list
 
+    website = get_info(details, 'homepage_url')
+    # get website details from AWIS
+    prev3 = NA
+    tree = get_awis_tree(awis, website)
+    if tree:
+        rank_search = "//{%s}Rank" % awis.NS_PREFIXES["awis"]
+        rank = tree.find(rank_search)
+        try:
+            prev3 = rank.text 
+            if not prev3:
+                print "\tRank not specified."
+        except:
+            print "\tFailed fetching rank."
+
+    #Build CSV line list
     # 'Website'
-    lappend(details_list, get_info(details, 'homepage_url'))
+    lappend(details_list, website)
     # 'Status' 
     lappend(details_list, '')
     # 'PIC($m)'
@@ -152,7 +184,7 @@ def get_company_details(cb, company_name):
     # 'Alexa Traffic Global Rank'
     lappend(details_list, '')
     # 'Prev 3 mos'
-    lappend(details_list, '')
+    lappend(details_list, prev3)
     # 'Description'
     description = get_info(details,'overview')
     lappend(details_list, strip_formatting(description))
@@ -187,24 +219,35 @@ def get_company_details(cb, company_name):
     lappend(details_list, get_info(details, 'phone_number'))
     # 'Email Address'
     lappend(details_list, get_info(details, 'email_address'))
-    print ('Company: {} took: {}'.format(company_name, time.time()-now))
     return [unicode_to_str(detail) for detail in details_list]
 
 
 def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
-    # --- TESTING ----------------------
-    from pprint import pprint
-    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
-    tree = api.url_info("ranking-check.de", "Rank")
-    pprint(tree)
-    for elem in tree.iter():
-        print elem.tag, elem.attrib
-    import sys
-    tree.write(sys.stdout)
-    # pprint(cb.company('Seven-Medical'))
-    exit()
-    # ------------------------------------
+    awis =  AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    # # --- TESTING ----------------------
+    # from pprint import pprint
+    # api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    # tree = api.url_info("http://www.eminorinc.com", 
+    #                     "Rank")
+    # pprint(tree)
+    # for elem in tree.iter():
+    #     print elem.tag, elem.attrib
+    # import sys
+    # tree.write(sys.stdout)
+    # print "\n"
+    # # pprint(cb.company('Seven-Medical'))
+    # text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
+    # print "Looking for {}".format(text)
+    # status = tree.find(text)
+    # if elem.text != "Success":
+    #     print "AWIS request unsuccessful."
+    # text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
+    # print "Looking for {}".format(text)
+    # rank = tree.find(text)
+    # print rank.text 
+    # exit()
+    # # ------------------------------------
     with open(INPUT_CSV) as read_handler:
         with open (OUTPUT_CSV, 'w') as write_handler:
             reader = csv.reader(read_handler)
@@ -214,7 +257,7 @@ def main():
             for line in reader:
                 if not_empty(line):
                     company_name = line[0].strip()
-                    new_line = get_company_details(cb, company_name)
+                    new_line = get_company_details(cb, awis, company_name)
                     writer.writerow(new_line)
     
 if __name__ == '__main__':
