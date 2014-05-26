@@ -290,7 +290,8 @@ has the appropriate format.""".format(KEY_FILE)
         if 'response code is 403' in e.message:
             print traceback.format_exc()
             print "!!! -> Make sure the AWIS keys are correctly read from key file.\n"
-    finally:
-        print e
+        else:
+            print e
+    
 
 
