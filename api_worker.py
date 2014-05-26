@@ -5,10 +5,11 @@ import ujson as json
 import unicodedata
 import re
 import traceback
+import string
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
 
-INPUT_CSV = 'input.csv'
+INPUT_CSV = 'input2.csv'
 OUTPUT_CSV = 'output.csv'
 CB_VERSION = 1
 NA = ' '
@@ -105,17 +106,19 @@ def get_awis_tree(awis, website):
                 print traceback.format_exc()
                 print "Failed to read AWIS return status..."
         else:
-            print "No website specifiec. Website is {}".format(website)
+            print "No website specified. Website is {}.".format(website)
 def get_company_details(cb, awis, company_name):
     """
     Use company name to return a list of company details named in needed_details.
     """
     details_list = []
-    # 'Name'
-    company_name = company_name.strip()
+
+    # get company name and strip spaces and punctuation
+    name = company_name.strip()
+    company_name = name.strip(string.punctuation)
     print "\n{}".format(company_name.upper())
     new_company_name = company_name
-    lappend(details_list, company_name)
+
 
     # get company details from CB
     details = get_cb_raw_details(cb, company_name)
@@ -123,21 +126,23 @@ def get_company_details(cb, awis, company_name):
         print 'Searching CB for company {}...'.format(company_name)
         search_details = cb.search(company_name)
         if search_details['total'] == 0:
-            return details_list
+            return [company_name]
         else:
             for result in search_details['results']:
                 try:
                     if company_name in result['name'] \
                             or result['name'] in company_name:
                         new_company_name = result['name']
+                        details = get_cb_raw_details(cb, new_company_name)
+                        company_name = "{}{}({})".format('?',
+                                                         company_name,
+                                                         new_company_name)
                         break
                 except:
                     pass
-        if new_company_name != company_name:
-            details = get_cb_raw_details(cb, new_company_name)
     if not details:
         print "\t\tNOT FOUND"
-        return details_list
+        return [company_name]
 
     website = get_info(details, 'homepage_url')
     # get website details from AWIS
@@ -154,6 +159,8 @@ def get_company_details(cb, awis, company_name):
             print "\tFailed fetching rank."
 
     #Build CSV line list
+    # 'Name' - rewrite in case new company found
+    lappend(details_list, company_name)
     # 'Website'
     lappend(details_list, website)
     # 'Status'
