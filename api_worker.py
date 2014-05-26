@@ -187,7 +187,7 @@ def get_company_details(cb, awis, company_name):
     if raised_amount == 0: 
         raised_amount = NA
     else:
-        raised_amount == '$'+str(raised_amount)
+        raised_amount = '$'+str(raised_amount)
     # OR raised_amount = get_info(details, 'total_money_raised')
     lappend(details_list, raised_amount)
     # 'Existing Investors'
