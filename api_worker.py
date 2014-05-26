@@ -156,8 +156,13 @@ def get_company_details(cb, awis, company_name):
     #Build CSV line list
     # 'Website'
     lappend(details_list, website)
-    # 'Status' 
-    lappend(details_list, '')
+    # 'Status'
+    acq = get_info(details, 'acquisition')
+    ipo = get_info(details, 'ipo')
+    status = 'Private'
+    if ipo or acq:
+        status = 'Public'
+    lappend(details_list, status)
     # 'PIC($m)'
     raised_amount = 0
     investors_set = set()
@@ -165,14 +170,19 @@ def get_company_details(cb, awis, company_name):
     try:
         for funds in fund_rounds:
             amount = get_info(funds, 'raised_amount')
-            if amount: raised_amount += amount
+            if amount: 
+                raised_amount += amount
             for investor in funds['investments']:
                 if investor['financial_org']:
                     investors_set.add(investor['financial_org']['name'])
     except:
         pass
-    if raised_amount == 0: raised_amount = NA
-    lappend(details_list, '$'+str(raised_amount))
+    if raised_amount == 0: 
+        raised_amount = NA
+    else:
+        raised_amount == '$'+str(raised_amount)
+    # OR raised_amount = get_info(details, 'total_money_raised')
+    lappend(details_list, raised_amount)
     # 'Existing Investors'
     if not investors_set:
         investors = NA
@@ -228,8 +238,10 @@ def main():
     # # --- TESTING ----------------------
     # from pprint import pprint
     # api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
-    # tree = api.url_info("http://www.eminorinc.com", 
-    #                     "Rank")
+    # tree = api.url_info("http://www.cloudtp.com",
+    #                     "Rank",
+    #                     "RankByCountry",
+    #                     "RankByCity")
     # pprint(tree)
     # for elem in tree.iter():
     #     print elem.tag, elem.attrib
