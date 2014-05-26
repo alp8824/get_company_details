@@ -9,7 +9,7 @@ import string
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
 
-INPUT_CSV = 'input2.csv'
+INPUT_CSV = 'input.csv'
 OUTPUT_CSV = 'output.csv'
 CB_VERSION = 1
 NA = ' '
@@ -290,5 +290,7 @@ has the appropriate format.""".format(KEY_FILE)
         if 'response code is 403' in e.message:
             print traceback.format_exc()
             print "!!! -> Make sure the AWIS keys are correctly read from key file.\n"
-    
+    finally:
+        print e
+
 
