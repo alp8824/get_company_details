@@ -6,7 +6,7 @@ import unicodedata
 import re
 import traceback
 import string
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from my_logger import log
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
@@ -21,9 +21,10 @@ NA = ' '
 def parse_cli_opts():
     global args
 
-    arg_parser = ArgumentParser(description='''
-Get company details via CB & AWIS.
-Company list is read from input file.''')
+    arg_parser = ArgumentParser(description='''Get company details via CB & AWIS.
+Company list is read from input file.''',
+                                formatter_class=ArgumentDefaultsHelpFormatter)
+
     arg_parser.add_argument('-i', '--input_file',
                             help='Input csv file containing companyes on first column',
                             default='input.csv')
