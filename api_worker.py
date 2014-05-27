@@ -6,16 +6,38 @@ import unicodedata
 import re
 import traceback
 import string
+from argparse import ArgumentParser
 from my_logger import log
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
 
-INPUT_CSV = 'input.csv'
-OUTPUT_CSV = 'output.csv'
+#INPUT_CSV = 'input.csv'
+#OUTPUT_CSV = 'output.csv'
 CB_VERSION = 1
 NA = ' '
-KEY_FILE = 'rootkey.csv'
+#KEY_FILE = 'rootkey.csv'
             
+
+def parse_cli_opts():
+    global args
+
+    arg_parser = ArgumentParser(description='''
+Get company details via CB & AWIS.
+Company list is read from input file.''')
+    arg_parser.add_argument('-i', '--input_file',
+                            help='Input csv file containing companyes on first column',
+                            default='input.csv')
+    arg_parser.add_argument('-o', '--output_file',
+                            help='Output csv file.',
+                            default='outpup.csv')
+    arg_parser.add_argument('-k', '--key_file',
+                            help='Api keys file.',
+                            default='rootkey.csv')
+    arg_parser.add_argument('-extra', '--extra-info',
+                        help='Get extra info on companies.',
+                        action="store_true")
+    args = arg_parser.parse_args()
+
 
 def get_keys(KEY_FILE):
     global CB_KEY
@@ -174,9 +196,6 @@ def get_company_details(cb, awis, company_name):
     tree = get_awis_tree(awis, website)
     # get prev 3 month rank
     prev3 = get_rank(awis, tree, 'Rank')
-    # get ranks by city and country
-    rco = get_rank(awis, tree, 'RankByCountry', 'Code')
-    rci = get_rank(awis, tree, 'RankByCity', 'Name')
 
     #Build CSV line list
     # 'Name' - rewrite in case new company found
@@ -254,10 +273,17 @@ def get_company_details(cb, awis, company_name):
     lappend(details_list, get_info(details, 'phone_number'))
     # 'Email Address'
     lappend(details_list, get_info(details, 'email_address'))
-    # 'Rank By Country'
-    lappend(details_list, rco)
-    # 'Rank By City'
-    lappend(details_list, rci)
+
+    #Add extra info if required
+    # order here should be the same as in the main function section
+    if args.extra_info:
+        # get ranks by city and country
+        rco = get_rank(awis, tree, 'RankByCountry', 'Code')
+        rci = get_rank(awis, tree, 'RankByCity', 'Name')
+        # 'Rank By Country'
+        lappend(details_list, rco)
+        # 'Rank By City'
+        lappend(details_list, rci)
 
     return [unicode_to_str(detail) for detail in details_list]
 
@@ -296,15 +322,16 @@ def main():
     # print rci
     # exit()
     # # ------------------------------------
-    with open(INPUT_CSV) as read_handler:
-        with open (OUTPUT_CSV, 'w') as write_handler:
+    with open(args.input_file) as read_handler:
+        with open (args.output_file, 'w') as write_handler:
             reader = csv.reader(read_handler)
             writer = csv.writer(write_handler)
             h = reader.next()
             headers = [x for x in h if x]
             headers.remove('Alexa Traffic Global Rank')
-            headers.append('Rank By Country')
-            headers.append('Rank By City')
+            if args.extra_info:
+                headers.append('Rank By Country')
+                headers.append('Rank By City')
             writer.writerow(headers)
             for line in reader:
                 if not_empty(line):
@@ -313,10 +340,12 @@ def main():
                     writer.writerow(new_line)
     
 if __name__ == '__main__':
-    if not get_keys(KEY_FILE):
+    parse_cli_opts()
+    if not get_keys(args.key_file):
         log.info("""ERROR: Failed reading API keys from file {}.
 Check the readme and make sure the file exists and 
-has the appropriate format.""".format(KEY_FILE))
+has the appropriate format.""".format(args.key_file))
+        exit(1)
     try:
         main()
     except IOError as e:
