@@ -6,7 +6,7 @@ LOG_FILE = sys.argv[0].strip("./").split(".")[0] + ".log"
 LOG_FILE_PATH = os.getcwd()
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 # log to file
 fh = logging.FileHandler(LOG_FILE, mode='w')
 fh.setLevel(logging.DEBUG)

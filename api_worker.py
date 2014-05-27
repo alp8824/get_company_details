@@ -92,7 +92,7 @@ def get_cb_raw_details(cb, company_name):
 def get_awis_tree(awis, website):
         if website:
             log.info("Getting AWIS data for {}...".format(website))
-            tree = awis.url_info(website, "Rank")
+            tree = awis.url_info(website, 'Rank', 'RankByCountry', 'RankByCity')
             status_search = "//{%s}StatusCode" % awis.NS_PREFIXES["alexa"]
             status = tree.find(status_search)
             try:
@@ -103,10 +103,34 @@ def get_awis_tree(awis, website):
                     return None
                 return tree
             except Exception as e:
-                log.info(traceback.format_exc())
+                log.debug(traceback.format_exc())
                 log.info("Failed to read AWIS return status...")
         else:
             log.info("No website specified. Website is {}.".format(website))
+
+def get_rank(api, tree, rank_type, key_code='', val_code='Rank'):
+    rank_search = '//{%s}%s' % (api.NS_PREFIXES['awis'], rank_type)
+    rank_root = tree.find(rank_search)
+    ret = None
+    try:
+        if rank_type == 'Rank':
+            ret = rank_root.text 
+            if not ret:
+                log.info("\tRank not specified.")
+        else: 
+            ret = {}
+            for child in rank_root:
+                # print '{} -> {}'.format(child.tag, child.attrib)
+                key = child.attrib.get(key_code)
+                for nep in child:
+                    if 'Rank' in nep.tag:
+                        value = nep.text
+                        if value:
+                            ret[key] = value
+    except:
+        log.info('\t{} info not found...'.format(rank_type))
+        log.debug(traceback.format_exc())
+    return ret
 
 def get_company_details(cb, awis, company_name):
     """
@@ -120,7 +144,6 @@ def get_company_details(cb, awis, company_name):
     log.info('')
     log.info("{}".format(company_name.upper()))
     new_company_name = company_name
-
 
     # get company details from CB
     details = get_cb_raw_details(cb, company_name)
@@ -146,19 +169,14 @@ def get_company_details(cb, awis, company_name):
         log.info("\t\tNOT FOUND")
         return [company_name]
 
-    website = get_info(details, 'homepage_url')
     # get website details from AWIS
-    prev3 = NA
+    website = get_info(details, 'homepage_url')
     tree = get_awis_tree(awis, website)
-    if tree:
-        rank_search = "//{%s}Rank" % awis.NS_PREFIXES["awis"]
-        rank = tree.find(rank_search)
-        try:
-            prev3 = rank.text 
-            if not prev3:
-                log.info("\tRank not specified.")
-        except:
-            log.info("\tFailed fetching rank.")
+    # get prev 3 month rank
+    prev3 = get_rank(awis, tree, 'Rank')
+    # get ranks by city and country
+    rco = get_rank(awis, tree, 'RankByCountry', 'Code')
+    rci = get_rank(awis, tree, 'RankByCity', 'Name')
 
     #Build CSV line list
     # 'Name' - rewrite in case new company found
@@ -200,8 +218,6 @@ def get_company_details(cb, awis, company_name):
     lappend(details_list, investors)
     # '# of Employees'
     lappend(details_list, get_info(details, 'number_of_employees'))
-    # 'Alexa Traffic Global Rank'
-    lappend(details_list, '')
     # 'Prev 3 mos'
     lappend(details_list, prev3)
     # 'Description'
@@ -238,6 +254,11 @@ def get_company_details(cb, awis, company_name):
     lappend(details_list, get_info(details, 'phone_number'))
     # 'Email Address'
     lappend(details_list, get_info(details, 'email_address'))
+    # 'Rank By Country'
+    lappend(details_list, rco)
+    # 'Rank By City'
+    lappend(details_list, rci)
+
     return [unicode_to_str(detail) for detail in details_list]
 
 
@@ -245,39 +266,45 @@ def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
     awis =  AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
     # # --- TESTING ----------------------
-    from pprint import pprint
-    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
-    tree = api.url_info("http://www.cloudtp.com",
-                        'Rank',
-                        'RankByCountry',
-                        'RankByCity')
-    pprint(tree)
-    import sys
-    tree.write(sys.stdout)
-    print "\n"
-    # pprint(cb.company('Seven-Medical'))
-    text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
-    print "Looking for {}".format(text)
-    status = tree.find(text)
-    if status.text != "Success":
-        print "AWIS request unsuccessful."
-    text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
-    print "Looking for {}".format(text)
-    rank = tree.find(text)
-    print rank.text 
-    text = '//{%s}RankByCountry' % api.NS_PREFIXES['awis']
-    rbc = tree.find(text)
-    for child in rbc:
-        print '{} -> {}'.format(child.tag, child.attrib)
-    for n in rbc.findall('Rank'):
-        print n.text
-    exit()
+    # from pprint import pprint
+    # api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    # # tree = api.url_info("http://www.cloudtp.com",
+    # #                     'Rank',
+    # #                     'RankByCountry',
+    # #                     'RankByCity')
+    # tree = api.url_info("http://www.agilone.com",
+    #                     'Rank',
+    #                     'RankByCountry',
+    #                     'RankByCity')
+    # pprint(tree)
+    # import sys
+    # tree.write(sys.stdout)
+    # print "\n"
+    # # pprint(cb.company('Seven-Medical'))
+    # text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
+    # print "Looking for {}".format(text)
+    # status = tree.find(text)
+    # if status.text != "Success":
+    #     print "AWIS request unsuccessful."
+    # text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
+    # print "Looking for {}".format(text)
+    # rank = tree.find(text)
+    # print rank.text 
+    # rco = get_rank(api, tree, 'RankByCountry', 'Code')
+    # print rco
+    # rci = get_rank(api, tree, 'RankByCity', 'Name')
+    # print rci
+    # exit()
     # # ------------------------------------
     with open(INPUT_CSV) as read_handler:
         with open (OUTPUT_CSV, 'w') as write_handler:
             reader = csv.reader(read_handler)
             writer = csv.writer(write_handler)
-            headers = reader.next()
+            h = reader.next()
+            headers = [x for x in h if x]
+            headers.remove('Alexa Traffic Global Rank')
+            headers.append('Rank By Country')
+            headers.append('Rank By City')
             writer.writerow(headers)
             for line in reader:
                 if not_empty(line):
@@ -294,7 +321,7 @@ has the appropriate format.""".format(KEY_FILE))
         main()
     except IOError as e:
         if 'response code is 403' in e.message:
-            log.info(traceback.format_exc())
+            log.debug(traceback.format_exc())
             log.info("!!! -> Make sure the AWIS keys are correctly read from key file.\n")
         else:
             log.info(e)
