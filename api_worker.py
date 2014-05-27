@@ -6,6 +6,7 @@ import unicodedata
 import re
 import traceback
 import string
+from my_logger import log
 from apis.crunchbase import Crunchbase
 from apis.awis import AwisApi
 
@@ -70,19 +71,19 @@ def not_empty(lst):
     return False
 
 def get_cb_raw_details(cb, company_name):
-    print "Looking up '{}' in CB...".format(company_name)
+    log.info("Looking up '{}' in CB...".format(company_name)) 
     details = cb.company(company_name)
     if not check_details(details):
         cn = company_name.replace(' ','')
         cn = cn.replace('.com','')
         if cn != company_name:
-            print ("\t {}...".format(cn))
+            log.info("\t {}...".format(cn))
             details = cb.company(cn)
     if not check_details(details):
         cn = company_name.lower().replace(' ','-')
         cn = cn.replace('.','-')
         if cn != company_name:
-            print ("\t {}...".format(cn))
+            log.info("\t {}...".format(cn))
             details = cb.company(cn)
     if not check_details(details):
         return None
@@ -90,23 +91,23 @@ def get_cb_raw_details(cb, company_name):
 
 def get_awis_tree(awis, website):
         if website:
-            print "Getting AWIS data for {}...".format(website)
+            log.info("Getting AWIS data for {}...".format(website))
             tree = awis.url_info(website, "Rank")
             status_search = "//{%s}StatusCode" % awis.NS_PREFIXES["alexa"]
             status = tree.find(status_search)
             try:
                 if status.text != "Success":
-                    print '''ERROR:AWIS request unsuccessful for website: 
-\t{} 
-\tGot tree: '''.format(Website)
+                    log.info('''ERROR:AWIS request unsuccessful for website: 
+\t{}'''.format(Website))
                     tree.write(sys.stdout)
                     return None
                 return tree
             except Exception as e:
-                print traceback.format_exc()
-                print "Failed to read AWIS return status..."
+                log.info(traceback.format_exc())
+                log.info("Failed to read AWIS return status...")
         else:
-            print "No website specified. Website is {}.".format(website)
+            log.info("No website specified. Website is {}.".format(website))
+
 def get_company_details(cb, awis, company_name):
     """
     Use company name to return a list of company details named in needed_details.
@@ -116,14 +117,15 @@ def get_company_details(cb, awis, company_name):
     # get company name and strip spaces and punctuation
     name = company_name.strip()
     company_name = name.strip(string.punctuation)
-    print "\n{}".format(company_name.upper())
+    log.info('')
+    log.info("{}".format(company_name.upper()))
     new_company_name = company_name
 
 
     # get company details from CB
     details = get_cb_raw_details(cb, company_name)
     if not details:
-        print 'Searching CB for company {}...'.format(company_name)
+        log.info('Searching CB for company {}...'.format(company_name))
         search_details = cb.search(company_name)
         if search_details['total'] == 0:
             return [company_name]
@@ -141,7 +143,7 @@ def get_company_details(cb, awis, company_name):
                 except:
                     pass
     if not details:
-        print "\t\tNOT FOUND"
+        log.info("\t\tNOT FOUND")
         return [company_name]
 
     website = get_info(details, 'homepage_url')
@@ -154,9 +156,9 @@ def get_company_details(cb, awis, company_name):
         try:
             prev3 = rank.text 
             if not prev3:
-                print "\tRank not specified."
+                log.info("\tRank not specified.")
         except:
-            print "\tFailed fetching rank."
+            log.info("\tFailed fetching rank.")
 
     #Build CSV line list
     # 'Name' - rewrite in case new company found
@@ -243,7 +245,7 @@ def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
     awis =  AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
     # # --- TESTING ----------------------
-    # from pprint import pprint
+    # from plog.info(import pprint
     # api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
     # tree = api.url_info("http://www.cloudtp.com",
     #                     "Rank",
@@ -251,20 +253,20 @@ def main():
     #                     "RankByCity")
     # pprint(tree)
     # for elem in tree.iter():
-    #     print elem.tag, elem.attrib
+    #     log.info(elem.tag, elem.attrib
     # import sys
     # tree.write(sys.stdout)
-    # print "\n"
+    # log.info("\n"
     # # pprint(cb.company('Seven-Medical'))
     # text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
-    # print "Looking for {}".format(text)
+    # log.info("Looking for {}".format(text)
     # status = tree.find(text)
     # if elem.text != "Success":
-    #     print "AWIS request unsuccessful."
+    #     log.info("AWIS request unsuccessful."
     # text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
-    # print "Looking for {}".format(text)
+    # log.info("Looking for {}".format(text)
     # rank = tree.find(text)
-    # print rank.text 
+    # log.info(rank.text 
     # exit()
     # # ------------------------------------
     with open(INPUT_CSV) as read_handler:
@@ -281,17 +283,17 @@ def main():
     
 if __name__ == '__main__':
     if not get_keys(KEY_FILE):
-        print """ERROR: Failed reading API keys from file {}.
+        log.info("""ERROR: Failed reading API keys from file {}.
 Check the readme and make sure the file exists and 
-has the appropriate format.""".format(KEY_FILE)
+has the appropriate format.""".format(KEY_FILE))
     try:
         main()
     except IOError as e:
         if 'response code is 403' in e.message:
-            print traceback.format_exc()
-            print "!!! -> Make sure the AWIS keys are correctly read from key file.\n"
+            log.info(traceback.format_exc())
+            log.info("!!! -> Make sure the AWIS keys are correctly read from key file.\n")
         else:
-            print e
+            log.info(e)
     
 
 
