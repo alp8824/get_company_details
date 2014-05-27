@@ -245,29 +245,33 @@ def main():
     cb = Crunchbase(CB_KEY, CB_VERSION)
     awis =  AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
     # # --- TESTING ----------------------
-    # from plog.info(import pprint
-    # api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
-    # tree = api.url_info("http://www.cloudtp.com",
-    #                     "Rank",
-    #                     "RankByCountry",
-    #                     "RankByCity")
-    # pprint(tree)
-    # for elem in tree.iter():
-    #     log.info(elem.tag, elem.attrib
-    # import sys
-    # tree.write(sys.stdout)
-    # log.info("\n"
-    # # pprint(cb.company('Seven-Medical'))
-    # text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
-    # log.info("Looking for {}".format(text)
-    # status = tree.find(text)
-    # if elem.text != "Success":
-    #     log.info("AWIS request unsuccessful."
-    # text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
-    # log.info("Looking for {}".format(text)
-    # rank = tree.find(text)
-    # log.info(rank.text 
-    # exit()
+    from pprint import pprint
+    api = AwisApi(AWIS_KEY_ID, AWIS_SECRET_KEY)
+    tree = api.url_info("http://www.cloudtp.com",
+                        'Rank',
+                        'RankByCountry',
+                        'RankByCity')
+    pprint(tree)
+    import sys
+    tree.write(sys.stdout)
+    print "\n"
+    # pprint(cb.company('Seven-Medical'))
+    text = "//{%s}StatusCode" % api.NS_PREFIXES["alexa"]
+    print "Looking for {}".format(text)
+    status = tree.find(text)
+    if status.text != "Success":
+        print "AWIS request unsuccessful."
+    text = "//{%s}Rank" % api.NS_PREFIXES["awis"]
+    print "Looking for {}".format(text)
+    rank = tree.find(text)
+    print rank.text 
+    text = '//{%s}RankByCountry' % api.NS_PREFIXES['awis']
+    rbc = tree.find(text)
+    for child in rbc:
+        print '{} -> {}'.format(child.tag, child.attrib)
+    for n in rbc.findall('Rank'):
+        print n.text
+    exit()
     # # ------------------------------------
     with open(INPUT_CSV) as read_handler:
         with open (OUTPUT_CSV, 'w') as write_handler:
